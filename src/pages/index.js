@@ -1,0 +1,8 @@
+export { default as Login } from "./Login.jsx"
+export { default as Signup } from "./Signup.jsx"
+export { default as Dashboard } from "./Dashboard.jsx"
+export { default as ForgotPassword } from "./ForgotPassword.jsx"
+export { default as GenerateCode } from "./GenerateCode.jsx"
+export { default as GistHistory } from "./GistHistory.jsx"
+export { default as Profile } from "./Profile.jsx"
+export { default as SavedCodes } from "./SavedCodes.jsx"
