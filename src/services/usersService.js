@@ -7,6 +7,11 @@ export const getUserProfile = async () => {
     return response.data
 }
 
+export const getUserStats = async () => {
+    const response = await axiosWithCredentials.get(`${BASE_URL}/user/stats/`)
+    return response.data
+}
+
 export const updateUserProfile = async (userId, payload) => {
   const response = await axiosWithCredentials.patch(
     `${BASE_URL}/user/edit-profile/${userId}`,

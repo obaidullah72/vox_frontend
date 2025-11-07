@@ -1,20 +1,19 @@
-import { useState } from "react";
+// src/pages/GenerateCode.jsx
+import { useState, useEffect } from "react";
 import {
   Code2,
   Loader2,
-  Wand2,
   Copy,
   Check,
   Zap,
   Sparkles,
   Share2,
   Save,
-  FileCode,
-  GitBranch,
-  Calendar,
+  Activity,
+  Clock,
   TrendingUp,
 } from "lucide-react";
-import { generateCode } from "../services";
+import { generateCode, getUserStats } from "../services";
 
 export default function GenerateCode() {
   const [prompt, setPrompt] = useState("");
@@ -24,15 +23,35 @@ export default function GenerateCode() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [isShare, setIsShare] = useState(false);
-  const [isSave, setIsSave] = useState(true);
+  const [isSave, setIsSave] = useState(false);
+
+  // Stats state
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const suggestions = [
+    "Write a simple C program to print Hello World",
     "Create a React hook for API calls",
-    "Write a Python function to validate email",
+    "Python function to validate email",
     "JavaScript array sorting with custom comparator",
-    "CSS grid layout for dashboard",
     "Node.js Express middleware for auth",
   ];
+
+  // Fetch user stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const result = await getUserStats();
+        setStats(result.data);
+      } catch (err) {
+        console.error("Failed to load stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -40,8 +59,14 @@ export default function GenerateCode() {
     setGeneratedCode("");
     setCopied(false);
     setError("");
+
     try {
-      const payload = { message: prompt, isShare, isSave };
+      const payload = {
+        message: prompt,
+        isShare,
+        isSave,
+        language: language.toUpperCase(),
+      };
       const result = await generateCode(payload);
       setGeneratedCode(result.data?.code || "/* No code returned */");
     } catch (err) {
@@ -64,43 +89,32 @@ export default function GenerateCode() {
 
   const handleSuggestionClick = (s) => setPrompt(s);
 
-  // Reusable Toggle Component
-  const Toggle = ({ checked, onChange, label, icon: Icon, color }) => {
-    return (
-      <label className="flex items-center gap-3 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          className="sr-only"
-        />
+  // Toggle Component
+  const Toggle = ({ checked, onChange, label, icon: Icon, color }) => (
+    <label className="flex items-center gap-3 cursor-pointer select-none">
+      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+      <div className={`relative w-12 h-7 rounded-full transition-all ${checked ? color : "bg-gray-300"}`}>
+        <div className="absolute inset-0 rounded-full bg-white/20" />
         <div
-          className={`relative w-12 h-7 rounded-full transition-all duration-300 ${
-            checked ? color : "bg-gray-300"
+          className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform flex items-center justify-center ${
+            checked ? "translate-x-5" : ""
           }`}
         >
-          {/* Track */}
-          <div className="absolute inset-0 rounded-full bg-white/20" />
-          {/* Thumb */}
-          <div
-            className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 flex items-center justify-center ${
-              checked ? "translate-x-5" : ""
-            }`}
-          >
-            <Icon className={`h-3.5 w-3.5 ${checked ? "text-white" : "text-gray-400"}`} />
-          </div>
+          <Icon className={`h-3.5 w-3.5 ${checked ? "text-white" : "text-gray-400"}`} />
         </div>
-        <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
-          <Icon className="h-4 w-4" />
-          {label}
-        </span>
-      </label>
-    );
-  };
+      </div>
+      <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+    </label>
+  );
+
+  const displayLanguage = language === "c++" ? "C++" : language.charAt(0).toUpperCase() + language.slice(1);
 
   return (
     <div className="relative min-h-screen">
-      {/* Background blur orbs */}
+      {/* Blur Orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-0 w-96 h-96 -translate-x-1/3 -translate-y-1/3 rounded-full bg-blue-300/20 blur-3xl" />
         <div className="absolute bottom-0 right-0 w-96 h-96 translate-x-1/3 translate-y-1/3 rounded-full bg-green-300/20 blur-3xl" />
@@ -115,12 +129,8 @@ export default function GenerateCode() {
                 V
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  AI Code Generator
-                </h1>
-                <p className="text-sm text-gray-600 mt-0.5">
-                  Turn ideas into production-ready code instantly
-                </p>
+                <h1 className="text-2xl font-bold text-gray-900">AI Code Generator</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Turn ideas into production-ready code instantly</p>
               </div>
             </div>
           </header>
@@ -145,7 +155,7 @@ export default function GenerateCode() {
                   rows={5}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g., Write a React hook to fetch data with loading and error states..."
+                  placeholder="e.g., Write a simple C program to print Hello World..."
                   className="w-full p-4 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-800 placeholder-gray-400 resize-none transition-all"
                   maxLength={500}
                 />
@@ -167,7 +177,7 @@ export default function GenerateCode() {
                 </div>
               </div>
 
-              {/* Controls Card */}
+              {/* Controls */}
               <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-sm">
                 <div className="flex flex-wrap items-center gap-6 mb-5">
                   {/* Language Select */}
@@ -182,6 +192,7 @@ export default function GenerateCode() {
                       <option value="python">Python</option>
                       <option value="java">Java</option>
                       <option value="c++">C++</option>
+                      <option value="c">C</option>
                       <option value="html">HTML/CSS</option>
                       <option value="react">React</option>
                       <option value="node">Node.js</option>
@@ -189,34 +200,12 @@ export default function GenerateCode() {
                     </select>
                   </div>
 
-                  {/* Share Toggle */}
-                  <Toggle
-                    checked={isShare}
-                    onChange={(e) => setIsShare(e.target.checked)}
-                    label="Share"
-                    icon={Share2}
-                    color="bg-green-500"
-                  />
+                  <Toggle checked={isShare} onChange={(e) => setIsShare(e.target.checked)} label="Share" icon={Share2} color="bg-green-500" />
+                  <Toggle checked={isSave} onChange={(e) => setIsSave(e.target.checked)} label="Save" icon={Save} color="bg-purple-500" />
 
-                  {/* Save Toggle */}
-                  <Toggle
-                    checked={isSave}
-                    onChange={(e) => setIsSave(e.target.checked)}
-                    label="Save"
-                    icon={Save}
-                    color="bg-purple-500"
-                  />
-
-                  {/* Status */}
                   <div className="ml-auto flex items-center gap-2 text-sm">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        loading ? "bg-orange-500 animate-pulse" : "bg-green-500"
-                      }`}
-                    />
-                    <span className="font-medium text-gray-600">
-                      {loading ? "Generating..." : "Ready"}
-                    </span>
+                    <div className={`w-2 h-2 rounded-full ${loading ? "bg-orange-500 animate-pulse" : "bg-green-500"}`} />
+                    <span className="font-medium text-gray-600">{loading ? "Generating..." : "Ready"}</span>
                   </div>
                 </div>
 
@@ -240,8 +229,74 @@ export default function GenerateCode() {
               </div>
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar with Live Stats */}
             <div className="space-y-6">
+              {/* User Activity */}
+              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  Your Activity
+                </h3>
+
+                {statsLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-4 bg-gray-200 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : stats ? (
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Codes Generated</span>
+                      <span className="font-bold text-gray-900">{stats.codesGenerated.thisMonth}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Productivity Score</span>
+                      <span className="font-bold text-green-600">{stats.productivityScore}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Most Used Language</span>
+                      <span className="font-bold text-blue-600 capitalize">
+                        {stats.mostUsedLanguage}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        Peak Time
+                      </span>
+                      <span className="font-medium text-gray-700">
+                        {stats.activityOverview.peakHours}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No stats available</p>
+                )}
+              </div>
+
+              {/* Top Languages */}
+              {stats?.languageUsage && (
+                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-5">
+                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    Top Languages
+                  </h3>
+                  <div className="space-y-2">
+                    {stats.languageUsage.map((lang, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700 capitalize">
+                          {lang.language}
+                        </span>
+                        <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-full">
+                          {lang.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Pro Tips */}
               <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-5">
                 <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
@@ -262,23 +317,6 @@ export default function GenerateCode() {
                   ))}
                 </ul>
               </div>
-
-              {/* Supported Languages */}
-              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-800 mb-3">Languages</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {["JS", "Python", "Java", "C++", "React", "Node", "TS", "HTML/CSS"].map(
-                    (lang) => (
-                      <span
-                        key={lang}
-                        className="px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-md"
-                      >
-                        {lang}
-                      </span>
-                    )
-                  )}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -294,12 +332,8 @@ export default function GenerateCode() {
             <div className="max-w-4xl mx-auto">
               <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-8 text-center">
                 <Loader2 className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-3" />
-                <p className="text-lg font-semibold text-gray-800">
-                  AI is crafting your code...
-                </p>
-                <p className="text-sm text-gray-600">
-                  This usually takes a few seconds
-                </p>
+                <p className="text-lg font-semibold text-gray-800">AI is crafting your code...</p>
+                <p className="text-sm text-gray-600">This usually takes a few seconds</p>
               </div>
             </div>
           )}
@@ -308,7 +342,7 @@ export default function GenerateCode() {
           {generatedCode && !loading && (
             <div className="max-w-4xl mx-auto">
               <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden shadow-xl">
-                <div className="h-1 bg-blue-500" />
+                <div className="h-1 bg-gradient-to-r from-blue-500 to-green-500" />
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -317,7 +351,7 @@ export default function GenerateCode() {
                         <h3 className="text-lg font-bold text-white">Generated Code</h3>
                       </div>
                       <span className="px-3 py-1 text-xs font-bold bg-blue-600 text-white rounded-full uppercase tracking-wider">
-                        {language}
+                        {displayLanguage}
                       </span>
                     </div>
                     <button
@@ -326,7 +360,7 @@ export default function GenerateCode() {
                     >
                       {copied ? (
                         <>
-                          <Check className="h-4 w-4 text-blue-400" />
+                          <Check className="h-4 w-4 text-green-400" />
                           <span className="text-sm font-medium">Copied!</span>
                         </>
                       ) : (
